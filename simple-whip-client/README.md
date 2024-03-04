@@ -88,7 +88,11 @@ docker run -it --rm -e "URL=http://foo.com/whip/bar" simple-whip-client
 
 At the moment, the parameters of the command (e.g., the audio and video pipelines) are hardcoded, other than URL which you can pass in via an env variable.
 
-apt-get install -y --no-install-recommends \ gdb \ git \ build-essential \ devscripts \ pkg-config \ sudo \ libc6-dev \ gstreamer1.0-tools \ gstreamer1.0-nice \ gstreamer1.0-plugins-bad \ gstreamer1.0-plugins-ugly \ gstreamer1.0-plugins-good \ libglib2.0-dev \ libgstreamer-plugins-bad1.0-dev \ libsoup2.4-dev \ libjson-glib-dev \ libgstreamer1.0-dev \ libgstreamer-plugins-base1.0-dev \ gstreamer1.0-plugins-base \ gstreamer1.0-libav
+sudo apt update --allow-releaseinfo-change
+
+sudo apt install -y --no-install-recommends gdb git build-essential devscripts pkg-config libc6-dev gstreamer1.0-tools gstreamer1.0-nice gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good libglib2.0-dev libgstreamer-plugins-bad1.0-dev libsoup2.4-dev libjson-glib-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base gstreamer1.0-libav
+
+sudo apt clean && sudo apt autoclean && sudo apt autoremove
 
 sudo apt install gcc-8-base
 
