@@ -427,6 +427,7 @@ static gboolean whip_initialize(void) {
 
 	WHIP_PREFIX(LOG_INFO, "Starting the GStreamer pipeline\n");
 	GstStateChangeReturn ret = gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PLAYING);
+	WHIP_LOG(LOG_ERR, ret);
 	if(ret == GST_STATE_CHANGE_FAILURE) {
 		WHIP_LOG(LOG_ERR, "Failed to set the pipeline state to playing\n");
 		goto err;
