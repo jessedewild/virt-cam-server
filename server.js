@@ -50,11 +50,11 @@ app.post('/start', async (req, res) => {
 
     // Execute child_process commands
     exec(
-      `./simple-whip-client/whip-client -u ${whipServerUrl}/endpoint/${room}board -V "v4l2src device=/dev/video0 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc bitrate=1500000 tune=zerolatency speed-preset=superfast ! h264parse ! rtph264pay pt=96 config-interval=1 ssrc=80701 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"`
+      `./simple-whip-client/whip-client -u ${whipServerUrl}/endpoint/${room}board -V "v4l2src device=/dev/video0 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc bitrate=1500000 tune=zerolatency speed-preset=superfast ! h264parse ! rtph264pay pt=96 config-interval=1 ssrc=80700 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"`
     );
 
     exec(
-      `./simple-whip-client/whip-client -u ${whipServerUrl}/endpoint/${room}player -V "v4l2src device=/dev/video0 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc bitrate=1500000 tune=zerolatency speed-preset=superfast ! h264parse ! rtph264pay pt=96 config-interval=1 ssrc=80702 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"`
+      `./simple-whip-client/whip-client -u ${whipServerUrl}/endpoint/${room}player -V "v4l2src device=/dev/video1 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc bitrate=1500000 tune=zerolatency speed-preset=superfast ! h264parse ! rtph264pay pt=96 config-interval=1 ssrc=80701 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"`
     );
 
     res.sendStatus(200);
