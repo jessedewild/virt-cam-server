@@ -42,6 +42,11 @@ app.post('/start', async (req, res) => {
     // Store the room
     streamingRoom = room;
 
+    if (boardCmd) {
+      console.log(`Stopping existing board cam process`);
+      boardCmd.kill('SIGKILL');
+    }
+
     boardCmd = spawn(
       './simple-whip-client/whip-client',
       [
@@ -64,6 +69,11 @@ app.post('/start', async (req, res) => {
     boardCmd.on('close', (code) => {
       console.log(`Board cam process exited with code ${code}`);
     });
+
+    if (playerCmd) {
+      console.log(`Stopping existing player cam process`);
+      playerCmd.kill('SIGKILL');
+    }
 
     playerCmd = spawn(
       './simple-whip-client/whip-client',
@@ -96,6 +106,11 @@ app.post('/start', async (req, res) => {
 });
 
 app.get('/stop', async (req, res) => {
+  if (!whipServerUrl || !streamingRoom) {
+    res.sendStatus(400);
+    return;
+  }
+
   if (boardCmd) {
     console.log(`Stopping board cam process`);
     boardCmd.kill('SIGKILL');
