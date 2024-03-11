@@ -52,6 +52,7 @@ app.post('/start', async (req, res) => {
       ],
       {
         shell: true,
+        detached: true,
       }
     );
     boardCmd.stdout.on('data', (data) => {
@@ -74,6 +75,7 @@ app.post('/start', async (req, res) => {
       ],
       {
         shell: true,
+        detached: true,
       }
     );
     playerCmd.stdout.on('data', (data) => {
@@ -97,13 +99,19 @@ app.get('/stop', (req, res) => {
   streamingRoom = null;
 
   if (boardCmd) {
+    console.log(`Stopping board cam process`);
     boardCmd.kill('SIGKILL');
     boardCmd = null;
+  } else {
+    console.error(`No board cam process`);
   }
 
   if (playerCmd) {
+    console.log(`Stopping player cam process`);
     playerCmd.kill('SIGKILL');
     playerCmd = null;
+  } else {
+    console.error(`No player cam process`);
   }
 
   res.sendStatus(200);
