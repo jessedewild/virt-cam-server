@@ -95,9 +95,7 @@ app.post('/start', async (req, res) => {
   }
 });
 
-app.get('/stop', (req, res) => {
-  streamingRoom = null;
-
+app.get('/stop', async (req, res) => {
   if (boardCmd) {
     console.log(`Stopping board cam process`);
     boardCmd.kill('SIGKILL');
@@ -106,6 +104,8 @@ app.get('/stop', (req, res) => {
     console.error(`No board cam process`);
   }
 
+  await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}board`);
+
   if (playerCmd) {
     console.log(`Stopping player cam process`);
     playerCmd.kill('SIGKILL');
@@ -113,6 +113,10 @@ app.get('/stop', (req, res) => {
   } else {
     console.error(`No player cam process`);
   }
+
+  await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}player`);
+
+  streamingRoom = null;
 
   res.sendStatus(200);
 });
