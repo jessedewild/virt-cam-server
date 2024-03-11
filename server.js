@@ -47,7 +47,7 @@ app.post('/start', async (req, res) => {
     if (boardCmd) {
       console.log(`Stopping existing board cam process`);
       stoppingBoardCmd = true;
-      boardCmd.kill('SIGKILL');
+      boardCmd.kill();
     }
 
     boardCmd = spawn(
@@ -80,7 +80,7 @@ app.post('/start', async (req, res) => {
     if (playerCmd) {
       console.log(`Stopping existing player cam process`);
       stoppingPlayerCmd = true;
-      playerCmd.kill('SIGKILL');
+      playerCmd.kill();
     }
 
     playerCmd = spawn(
@@ -127,7 +127,7 @@ app.get('/stop', async (req, res) => {
     stoppingBoardCmd = true;
 
     console.log(`Stopping board cam process`);
-    boardCmd.kill('SIGKILL');
+    boardCmd.kill();
     boardCmd = null;
   } else {
     console.error(`No board cam process`);
@@ -139,7 +139,7 @@ app.get('/stop', async (req, res) => {
     stoppingPlayerCmd = true;
 
     console.log(`Stopping player cam process`);
-    playerCmd.kill('SIGKILL');
+    playerCmd.kill();
     playerCmd = null;
   } else {
     console.error(`No player cam process`);
