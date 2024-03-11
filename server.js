@@ -11,7 +11,9 @@ let whipServerUrl = null;
 let streamingRoom = null;
 
 let boardCmd = null;
+let stoppingBoardCmd = false;
 let playerCmd = null;
+let stoppingPlayerCmd = false;
 
 app.post('/start', async (req, res) => {
   const { whip_server_url, room, board_cam_display, player_cam_display } = req.body;
@@ -44,6 +46,7 @@ app.post('/start', async (req, res) => {
 
     if (boardCmd) {
       console.log(`Stopping existing board cam process`);
+      stoppingBoardCmd = true;
       boardCmd.kill('SIGKILL');
     }
 
@@ -67,11 +70,16 @@ app.post('/start', async (req, res) => {
       console.error(`[BOARD]: ${data}`);
     });
     boardCmd.on('close', (code) => {
+      if (!stoppingBoardCmd) {
+        console.error(`Board cam closed unexpectedly`);
+      }
+      stoppingBoardCmd = false;
       console.log(`Board cam process exited with code ${code}`);
     });
 
     if (playerCmd) {
       console.log(`Stopping existing player cam process`);
+      stoppingPlayerCmd = true;
       playerCmd.kill('SIGKILL');
     }
 
@@ -95,6 +103,10 @@ app.post('/start', async (req, res) => {
       console.error(`[PLAYER]: ${data}`);
     });
     playerCmd.on('close', (code) => {
+      if (!stoppingPlayerCmd) {
+        console.error(`Player cam closed unexpectedly`);
+      }
+      stoppingPlayerCmd = false;
       console.log(`Player cam process exited with code ${code}`);
     });
 
@@ -112,6 +124,8 @@ app.get('/stop', async (req, res) => {
   }
 
   if (boardCmd) {
+    stoppingBoardCmd = true;
+
     console.log(`Stopping board cam process`);
     boardCmd.kill('SIGKILL');
     boardCmd = null;
@@ -122,6 +136,8 @@ app.get('/stop', async (req, res) => {
   await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}board`);
 
   if (playerCmd) {
+    stoppingPlayerCmd = true;
+
     console.log(`Stopping player cam process`);
     playerCmd.kill('SIGKILL');
     playerCmd = null;
