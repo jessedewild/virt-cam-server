@@ -21,7 +21,7 @@ app.post('/start', async (req, res) => {
   console.log(`Starting streaming to ` + whip_server_url, room);
 
   if (streamingRoom) {
-    res.status(401).send({ message: 'Already streaming', room: streamingRoom });
+    res.status(401).json({ message: 'Already streaming', room: streamingRoom });
     return;
   }
 
@@ -110,16 +110,16 @@ app.post('/start', async (req, res) => {
       console.log(`Player cam process exited with code ${code}`);
     });
 
-    res.sendStatus(200);
+    res.status(200).json();
   } catch (error) {
     console.error('Error making POST requests or running commands:', error);
-    res.status(500).send('An error occurred');
+    res.status(500).json({ message: 'An error occurred' });
   }
 });
 
 app.get('/stop', async (req, res) => {
   if (!whipServerUrl || !streamingRoom) {
-    res.sendStatus(400);
+    res.status(400).json();
     return;
   }
 
@@ -149,7 +149,7 @@ app.get('/stop', async (req, res) => {
 
   streamingRoom = null;
 
-  res.sendStatus(200);
+  res.status(200).json();
 });
 
 app.get('/status', (req, res) => {
