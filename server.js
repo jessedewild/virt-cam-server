@@ -2,19 +2,10 @@ const express = require('express');
 const axios = require('axios');
 const { spawn } = require('child_process');
 const cors = require('cors');
-const https = require('https');
-const fs = require('fs');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
-
-const privateKey = fs.readFileSync('server.key', 'utf8');
-const certificate = fs.readFileSync('server.cert', 'utf8');
-
-const credentials = { key: privateKey, cert: certificate };
-
-// const httpsServer = https.createServer(credentials, app);
 
 let whipServerUrl = null;
 let streamingRoom = null;
