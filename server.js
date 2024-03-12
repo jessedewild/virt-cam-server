@@ -196,8 +196,8 @@ function getWirelessInterfaces(callback) {
   });
 }
 
-function scanWifiNetworks(interface, callback) {
-  exec(`sudo iwlist ${interface} scanning`, (error, stdout, stderr) => {
+function scanWifiNetworks(interfaceName, callback) {
+  exec(`sudo iwlist ${interfaceName} scanning`, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
       callback(error, null);
