@@ -214,8 +214,8 @@ function scanWifiNetworks(interface, callback) {
       }
 
       const match = line.match(/ESSID:"(.+)"/);
-      if (match && match[1]) {
-        network.essid = match[1];
+      if (match && match[0]) {
+        network.essid = match[0];
       }
 
       return networks;
