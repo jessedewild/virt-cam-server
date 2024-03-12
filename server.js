@@ -211,14 +211,16 @@ function scanWifiNetworks(interface, callback) {
         const ssidMatch = cell.match(/ESSID:"([^"]+)"/);
         const qualityMatch = cell.match(/Quality=([^ ]+) /);
         const signalMatch = cell.match(/Signal level=(-?\d+)/);
+        const addressMatch = cell.match(/Address: ([\w:]+)/);
 
         return {
           ssid: ssidMatch ? ssidMatch[1] : null,
           quality: qualityMatch ? qualityMatch[1] : null,
           signalLevel: signalMatch ? parseInt(signalMatch[1], 10) : null,
+          bssid: addressMatch ? addressMatch[1] : null,
         };
       })
-      .filter((net) => net.ssid);
+      .filter((net) => net.ssid && net.bssid);
 
     callback(null, networks);
   });
