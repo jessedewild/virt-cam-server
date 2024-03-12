@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const { spawn } = require('child_process');
+const { exec, spawn } = require('child_process');
 const cors = require('cors');
 
 const app = express();
@@ -160,7 +160,67 @@ app.get('/status', (req, res) => {
   res.json({ room: streamingRoom });
 });
 
+app.get('/scan-wifi', (req, res) => {
+  getWirelessInterfaces((error, interfaces) => {
+    if (error || interfaces.length === 0) {
+      res.status(500).json({ message: 'No wireless interfaces found or error occurred.' });
+      return;
+    }
+
+    // Assuming the first wireless interface is what we want to use
+    const wirelessInterface = interfaces[0];
+    scanWifiNetworks(wirelessInterface, (error, networks) => {
+      if (error) {
+        res.status(500).json({ message: 'Failed to scan networks.' });
+      } else {
+        res.json({ networks });
+      }
+    });
+  });
+});
+
 const PORT = 8070;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+function getWirelessInterfaces(callback) {
+  exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      callback(error, null);
+      return;
+    }
+    const interfaces = stdout.split('\n').filter((line) => line.trim() !== '');
+    callback(null, interfaces);
+  });
+}
+
+function scanWifiNetworks(interface, callback) {
+  exec(`sudo iwlist ${interface} scanning`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      callback(error, null);
+      return;
+    }
+
+    // Simple parsing of iwlist output to extract ESSID; can be expanded as needed
+    const networks = stdout.split('\n').reduce((networks, line) => {
+      line = line.trim();
+      const network = {};
+
+      if (line.startsWith('Cell')) {
+        networks.push(network);
+      }
+
+      const match = line.match(/ESSID:"(.+)"/);
+      if (match && match[1]) {
+        network.essid = match[1];
+      }
+
+      return networks;
+    }, []);
+
+    callback(null, networks);
+  });
+}
