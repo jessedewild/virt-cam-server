@@ -123,7 +123,7 @@ app.post('/start', async (req, res) => {
 
 app.get('/stop', async (req, res) => {
   if (!whipServerUrl || !streamingRoom) {
-    res.status(400).json();
+    res.status(500).json();
     return;
   }
 
@@ -222,6 +222,17 @@ function scanWifiNetworks(interface, callback) {
       })
       .filter((net) => net.ssid && net.bssid);
 
-    callback(null, networks);
+    const uniqueNetworks = networks.reduce((acc, network) => {
+      const existing = acc.find((net) => net.ssid === network.ssid);
+      if (!existing) {
+        acc.push(network);
+      } else if (existing.signalLevel < network.signalLevel) {
+        acc = acc.filter((net) => net.ssid !== network.ssid);
+        acc.push(network);
+      }
+      return acc;
+    }, []);
+
+    callback(null, uniqueNetworks);
   });
 }
