@@ -204,22 +204,21 @@ function scanWifiNetworks(interface, callback) {
       return;
     }
 
-    // Simple parsing of iwlist output to extract ESSID; can be expanded as needed
-    const networks = stdout.split('\n').reduce((networks, line) => {
-      line = line.trim();
-      const network = {};
+    const networks = stdout
+      .split('Cell')
+      .slice(1)
+      .map((cell) => {
+        const ssidMatch = cell.match(/ESSID:"([^"]+)"/);
+        const qualityMatch = cell.match(/Quality=([^ ]+) /);
+        const signalMatch = cell.match(/Signal level=(-?\d+)/);
 
-      if (line.startsWith('Cell')) {
-        networks.push(network);
-      }
-
-      const match = line.match(/ESSID:"(.+)"/);
-      if (match && match[0]) {
-        network.essid = match[0];
-      }
-
-      return networks;
-    }, []);
+        return {
+          ssid: ssidMatch ? ssidMatch[1] : null,
+          quality: qualityMatch ? qualityMatch[1] : null,
+          signalLevel: signalMatch ? parseInt(signalMatch[1], 10) : null,
+        };
+      })
+      .filter((net) => net.ssid);
 
     callback(null, networks);
   });
