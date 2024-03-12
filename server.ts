@@ -1,24 +1,32 @@
-const express = require('express');
-const axios = require('axios');
-const { exec, spawn } = require('child_process');
-const cors = require('cors');
+import express, { Request, Response } from 'express';
+import axios from 'axios';
+import { exec, spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import cors from 'cors';
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-let whipServerUrl = null;
-let streamingRoom = null;
+let whipServerUrl: string | null = null;
+let streamingRoom: string | null = null;
 
-let boardCmd = null;
-let stoppingBoardCmd = false;
-let playerCmd = null;
-let stoppingPlayerCmd = false;
+let boardCmd: ChildProcessWithoutNullStreams | null = null;
+let stoppingBoardCmd: boolean = false;
+let playerCmd: ChildProcessWithoutNullStreams | null = null;
+let stoppingPlayerCmd: boolean = false;
 
-app.post('/start', async (req, res) => {
+interface StartRequestBody {
+  whip_server_url: string;
+  whip_server_token: string;
+  room: string;
+  board_cam_display: string;
+  player_cam_display: string;
+}
+
+app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response) => {
   const { whip_server_url, whip_server_token, room, board_cam_display, player_cam_display } = req.body;
 
-  console.log(`Starting streaming to ` + whip_server_url, room);
+  console.log(`Starting streaming to ${whip_server_url}`, room);
 
   if (streamingRoom) {
     res.status(401).json({ message: 'Already streaming', room: streamingRoom });
@@ -28,20 +36,18 @@ app.post('/start', async (req, res) => {
   whipServerUrl = whip_server_url;
 
   try {
-    // Make POST requests for board and player cam displays
-    await axios.post(whipServerUrl + '/create', {
-      id: room + 'board',
+    await axios.post(`${whipServerUrl}/create`, {
+      id: `${room}board`,
       room: room,
       label: board_cam_display,
     });
 
-    await axios.post(whipServerUrl + '/create', {
-      id: room + 'player',
+    await axios.post(`${whipServerUrl}/create`, {
+      id: `${room}player`,
       room: room,
       label: player_cam_display,
     });
 
-    // Store the room
     streamingRoom = room;
 
     if (boardCmd) {
@@ -60,17 +66,17 @@ app.post('/start', async (req, res) => {
         '-V',
         '"v4l2src device=/dev/video0 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=1 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
       ],
-      {
-        shell: true,
-        detached: true,
-      }
+      { shell: true, detached: true }
     );
+
     boardCmd.stdout.on('data', (data) => {
       console.log(`[BOARD]: ${data}`);
     });
+
     boardCmd.stderr.on('data', (data) => {
       console.error(`[BOARD]: ${data}`);
     });
+
     boardCmd.on('close', (code) => {
       if (!stoppingBoardCmd) {
         console.error(`Board cam closed unexpectedly`);
@@ -95,17 +101,17 @@ app.post('/start', async (req, res) => {
         '-V',
         '"v4l2src device=/dev/video1 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=2 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
       ],
-      {
-        shell: true,
-        detached: true,
-      }
+      { shell: true, detached: true }
     );
+
     playerCmd.stdout.on('data', (data) => {
       console.log(`[PLAYER]: ${data}`);
     });
+
     playerCmd.stderr.on('data', (data) => {
       console.error(`[PLAYER]: ${data}`);
     });
+
     playerCmd.on('close', (code) => {
       if (!stoppingPlayerCmd) {
         console.error(`Player cam closed unexpectedly`);
@@ -121,7 +127,7 @@ app.post('/start', async (req, res) => {
   }
 });
 
-app.get('/stop', async (req, res) => {
+app.get('/stop', async (req: Request, res: Response) => {
   if (!whipServerUrl || !streamingRoom) {
     res.status(500).json();
     return;
@@ -156,26 +162,25 @@ app.get('/stop', async (req, res) => {
   res.status(200).json();
 });
 
-app.get('/status', (req, res) => {
+app.get('/status', (req: Request, res: Response) => {
   res.json({ room: streamingRoom });
 });
 
-app.get('/scan-wifi', (req, res) => {
+app.get('/scan-wifi', (req: Request, res: Response) => {
   getWirelessInterfaces((error, interfaces) => {
-    if (error || interfaces.length === 0) {
+    if (error || (interfaces && interfaces.length === 0)) {
       res.status(500).json({ message: 'No wireless interfaces found or error occurred.' });
       return;
+    } else if (interfaces) {
+      const wirelessInterface = interfaces[0];
+      scanWifiNetworks(wirelessInterface, (error, networks) => {
+        if (error) {
+          res.status(500).json({ message: 'Failed to scan networks.' });
+        } else {
+          res.json({ networks });
+        }
+      });
     }
-
-    // Assuming the first wireless interface is what we want to use
-    const wirelessInterface = interfaces[0];
-    scanWifiNetworks(wirelessInterface, (error, networks) => {
-      if (error) {
-        res.status(500).json({ message: 'Failed to scan networks.' });
-      } else {
-        res.json({ networks });
-      }
-    });
   });
 });
 
@@ -184,11 +189,18 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-function getWirelessInterfaces(callback) {
+interface Network {
+  ssid: string | null;
+  quality: string | null;
+  signalLevel: number | null;
+  bssid: string | null;
+}
+
+function getWirelessInterfaces(callback: (error: Error | null, interfaces?: string[]) => void): void {
   exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
-      callback(error, null);
+      callback(error);
       return;
     }
     const interfaces = stdout.split('\n').filter((line) => line.trim() !== '');
@@ -196,15 +208,15 @@ function getWirelessInterfaces(callback) {
   });
 }
 
-function scanWifiNetworks(interface, callback) {
-  exec(`sudo iwlist ${interface} scanning`, (error, stdout, stderr) => {
+function scanWifiNetworks(interfaceName: string, callback: (error: Error | null, networks?: Network[]) => void): void {
+  exec(`sudo iwlist ${interfaceName} scanning`, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
-      callback(error, null);
+      callback(error);
       return;
     }
 
-    const networks = stdout
+    const networks: Network[] = stdout
       .split('Cell')
       .slice(1)
       .map((cell) => {
@@ -222,11 +234,11 @@ function scanWifiNetworks(interface, callback) {
       })
       .filter((net) => net.ssid && net.bssid);
 
-    const uniqueNetworks = networks.reduce((acc, network) => {
+    const uniqueNetworks = networks.reduce((acc: Network[], network) => {
       const existing = acc.find((net) => net.ssid === network.ssid);
       if (!existing) {
         acc.push(network);
-      } else if (existing.signalLevel < network.signalLevel) {
+      } else if (existing.signalLevel && network.signalLevel && existing.signalLevel < network.signalLevel) {
         acc = acc.filter((net) => net.ssid !== network.ssid);
         acc.push(network);
       }
