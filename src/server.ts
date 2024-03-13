@@ -7,6 +7,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+interface Network {
+  ssid: string | null;
+  quality: string | null;
+  signalLevel: number | null;
+  bssid: string | null;
+}
+
 type CamType = 'board' | 'player';
 
 type VideoDevice = 'video0' | 'video1';
@@ -168,13 +175,6 @@ async function stopClient(type: CamType) {
   await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${type}`);
 }
 
-interface Network {
-  ssid: string | null;
-  quality: string | null;
-  signalLevel: number | null;
-  bssid: string | null;
-}
-
 function getWirelessInterfaces(callback: (error: Error | null, interfaces?: string[]) => void): void {
   exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
     if (error) {
@@ -227,12 +227,3 @@ function scanWifiNetworks(interfaceName: string, callback: (error: Error | null,
     callback(null, uniqueNetworks);
   });
 }
-
-async function gracefulShutdown() {
-  for (let camType of camTypes) {
-    await stopClient(camType);
-  }
-}
-
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);

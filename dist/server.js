@@ -189,12 +189,3 @@ function scanWifiNetworks(interfaceName, callback) {
         callback(null, uniqueNetworks);
     });
 }
-function gracefulShutdown() {
-    return __awaiter(this, void 0, void 0, function* () {
-        for (let camType of camTypes) {
-            yield stopClient(camType);
-        }
-    });
-}
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
