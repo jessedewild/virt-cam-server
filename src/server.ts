@@ -62,7 +62,7 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
       await createEndpoint(camType);
     }
   } catch (err) {
-    console.error(err);
+    // console.error(err);
   }
 
   streamingRoom = room;

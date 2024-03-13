@@ -36,7 +36,7 @@ app.post('/start', async (req, res) => {
         }
     }
     catch (err) {
-        console.error(err);
+        // console.error(err);
     }
     streamingRoom = room;
     startClient('board', 'video0', 1);
