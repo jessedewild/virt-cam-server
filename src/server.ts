@@ -17,14 +17,13 @@ let stoppingPlayerCmd: boolean = false;
 
 interface StartRequestBody {
   whip_server_url: string;
-  whip_server_token: string;
   room: string;
   board_cam_display: string;
   player_cam_display: string;
 }
 
 app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response) => {
-  const { whip_server_url, whip_server_token, room, board_cam_display, player_cam_display } = req.body;
+  const { whip_server_url, room, board_cam_display, player_cam_display } = req.body;
 
   console.log(`Starting streaming to ${whip_server_url}`, room);
 
@@ -61,8 +60,6 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
       [
         '-u',
         `${whipServerUrl}/endpoint/${room}board`,
-        '-t',
-        whip_server_token,
         '-V',
         '"v4l2src device=/dev/video0 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=1 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
       ],
@@ -96,8 +93,6 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
       [
         '-u',
         `${whipServerUrl}/endpoint/${room}player`,
-        '-t',
-        whip_server_token,
         '-V',
         '"v4l2src device=/dev/video1 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=2 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
       ],
