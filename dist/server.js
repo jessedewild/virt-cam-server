@@ -28,6 +28,7 @@ app.post('/start', async (req, res) => {
         return;
     }
     whipServerUrl = whip_server_url;
+    streamingRoom = room;
     displays['board'] = board_cam_display;
     displays['player'] = player_cam_display;
     try {
@@ -35,10 +36,7 @@ app.post('/start', async (req, res) => {
             await createEndpoint(camType);
         }
     }
-    catch (err) {
-        // console.error(err);
-    }
-    streamingRoom = room;
+    catch (_) { }
     startClient('board', 'video0', 1);
     startClient('player', 'video1', 2);
     res.status(200).json();
@@ -81,7 +79,6 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 async function createEndpoint(type) {
-    console.log(`Creating ${type} endpoint for ${streamingRoom} with ${displays[type]}`);
     await axios.post(`${whipServerUrl}/create`, {
         id: `${streamingRoom}${type}`,
         room: streamingRoom,
@@ -107,10 +104,10 @@ function startClient(type, device, ssrc) {
         detached: true,
     });
     commands[type].stdout.on('data', (data) => {
-        // console.log(`[${type}]: ${data}`);
+        console.log(`[${type}]: ${data}`);
     });
     commands[type].stderr.on('data', (data) => {
-        // console.error(`[${type}]: ${data}`);
+        console.error(`[${type}]: ${data}`);
     });
     commands[type].on('close', (code) => {
         if (!stoppingCommands[type]) {
@@ -120,9 +117,7 @@ function startClient(type, device, ssrc) {
                 try {
                     await createEndpoint(type);
                 }
-                catch (err) {
-                    console.error(err);
-                }
+                catch (_) { }
                 startClient(type, device, ssrc);
             }, 3000);
         }

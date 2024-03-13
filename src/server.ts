@@ -54,6 +54,8 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
   }
 
   whipServerUrl = whip_server_url;
+  streamingRoom = room;
+
   displays['board'] = board_cam_display;
   displays['player'] = player_cam_display;
 
@@ -61,11 +63,7 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
     for (let camType of camTypes) {
       await createEndpoint(camType);
     }
-  } catch (err) {
-    // console.error(err);
-  }
-
-  streamingRoom = room;
+  } catch (_) {}
 
   startClient('board', 'video0', 1);
   startClient('player', 'video1', 2);
@@ -116,7 +114,6 @@ app.listen(PORT, () => {
 });
 
 async function createEndpoint(type: CamType) {
-  console.log(`Creating ${type} endpoint for ${streamingRoom} with ${displays[type]}`);
   await axios.post(`${whipServerUrl}/create`, {
     id: `${streamingRoom}${type}`,
     room: streamingRoom,
@@ -149,10 +146,10 @@ function startClient(type: CamType, device: VideoDevice, ssrc: number) {
     }
   );
   commands[type].stdout.on('data', (data) => {
-    // console.log(`[${type}]: ${data}`);
+    console.log(`[${type}]: ${data}`);
   });
   commands[type].stderr.on('data', (data) => {
-    // console.error(`[${type}]: ${data}`);
+    console.error(`[${type}]: ${data}`);
   });
   commands[type].on('close', (code) => {
     if (!stoppingCommands[type]) {
@@ -161,9 +158,7 @@ function startClient(type: CamType, device: VideoDevice, ssrc: number) {
       setTimeout(async () => {
         try {
           await createEndpoint(type);
-        } catch (err) {
-          console.error(err);
-        }
+        } catch (_) {}
         startClient(type, device, ssrc);
       }, 3000);
     }
