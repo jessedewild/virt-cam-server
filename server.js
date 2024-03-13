@@ -41,74 +41,10 @@ app.post('/start', async (req, res) => {
       label: player_cam_display,
     });
 
-    // Store the room
     streamingRoom = room;
 
-    if (boardCmd) {
-      console.log(`Stopping existing board cam process`);
-      stoppingBoardCmd = true;
-      boardCmd.kill();
-    }
-
-    boardCmd = spawn(
-      './simple-whip-client/whip-client',
-      [
-        '-u',
-        `${whipServerUrl}/endpoint/${room}board`,
-        '-V',
-        '"v4l2src device=/dev/video0 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=1 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
-      ],
-      {
-        shell: true,
-        detached: true,
-      }
-    );
-    boardCmd.stdout.on('data', (data) => {
-      console.log(`[BOARD]: ${data}`);
-    });
-    boardCmd.stderr.on('data', (data) => {
-      console.error(`[BOARD]: ${data}`);
-    });
-    boardCmd.on('close', (code) => {
-      if (!stoppingBoardCmd) {
-        console.error(`Board cam closed unexpectedly`);
-      }
-      stoppingBoardCmd = false;
-      console.log(`Board cam process exited with code ${code}`);
-    });
-
-    if (playerCmd) {
-      console.log(`Stopping existing player cam process`);
-      stoppingPlayerCmd = true;
-      playerCmd.kill();
-    }
-
-    playerCmd = spawn(
-      './simple-whip-client/whip-client',
-      [
-        '-u',
-        `${whipServerUrl}/endpoint/${room}player`,
-        '-V',
-        '"v4l2src device=/dev/video1 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=2 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
-      ],
-      {
-        shell: true,
-        detached: true,
-      }
-    );
-    playerCmd.stdout.on('data', (data) => {
-      console.log(`[PLAYER]: ${data}`);
-    });
-    playerCmd.stderr.on('data', (data) => {
-      console.error(`[PLAYER]: ${data}`);
-    });
-    playerCmd.on('close', (code) => {
-      if (!stoppingPlayerCmd) {
-        console.error(`Player cam closed unexpectedly`);
-      }
-      stoppingPlayerCmd = false;
-      console.log(`Player cam process exited with code ${code}`);
-    });
+    startBoardCam();
+    startPlayerCam();
 
     res.status(200).json();
   } catch (error) {
@@ -179,6 +115,84 @@ const PORT = 8070;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+function startBoardCam() {
+  if (boardCmd) {
+    console.log(`Stopping existing board cam process`);
+    stoppingBoardCmd = true;
+    boardCmd.kill();
+  }
+
+  boardCmd = spawn(
+    './simple-whip-client/whip-client',
+    [
+      '-u',
+      `${whipServerUrl}/endpoint/${room}board`,
+      '-V',
+      '"v4l2src device=/dev/video0 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=1 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
+    ],
+    {
+      shell: true,
+      detached: true,
+    }
+  );
+  boardCmd.stdout.on('data', (data) => {
+    console.log(`[BOARD]: ${data}`);
+  });
+  boardCmd.stderr.on('data', (data) => {
+    console.error(`[BOARD]: ${data}`);
+  });
+  boardCmd.on('close', (code) => {
+    if (!stoppingBoardCmd) {
+      console.error(`Board cam closed unexpectedly`);
+      boardCmd = null;
+      setTimeout(() => {
+        startBoardCam();
+      }, 3000);
+    }
+    stoppingBoardCmd = false;
+    console.log(`Board cam process exited with code ${code}`);
+  });
+}
+
+function startPlayerCam() {
+  if (playerCmd) {
+    console.log(`Stopping existing player cam process`);
+    stoppingPlayerCmd = true;
+    playerCmd.kill();
+  }
+
+  playerCmd = spawn(
+    './simple-whip-client/whip-client',
+    [
+      '-u',
+      `${whipServerUrl}/endpoint/${room}player`,
+      '-V',
+      '"v4l2src device=/dev/video1 ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=2 ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"',
+    ],
+    {
+      shell: true,
+      detached: true,
+    }
+  );
+  playerCmd.stdout.on('data', (data) => {
+    console.log(`[PLAYER]: ${data}`);
+  });
+  playerCmd.stderr.on('data', (data) => {
+    console.error(`[PLAYER]: ${data}`);
+  });
+  playerCmd.on('close', (code) => {
+    if (!stoppingPlayerCmd) {
+      console.error(`Player cam closed unexpectedly`);
+      playerCmd = null;
+      setTimeout(() => {
+        startPlayerCam();
+      }, 3000);
+    }
+    stoppingPlayerCmd = false;
+    console.log(`Player cam process exited with code ${code}`);
+  });
+}
 
 function getWirelessInterfaces(callback) {
   exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
