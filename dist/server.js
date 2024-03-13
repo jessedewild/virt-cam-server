@@ -107,10 +107,10 @@ function startClient(type, device, ssrc) {
         detached: true,
     });
     commands[type].stdout.on('data', (data) => {
-        console.log(`[${type}]: ${data}`);
+        // console.log(`[${type}]: ${data}`);
     });
     commands[type].stderr.on('data', (data) => {
-        console.error(`[${type}]: ${data}`);
+        // console.error(`[${type}]: ${data}`);
     });
     commands[type].on('close', (code) => {
         if (!stoppingCommands[type]) {
