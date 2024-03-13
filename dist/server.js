@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import express from 'express';
 import axios from 'axios';
 import { exec, spawn } from 'child_process';
@@ -29,7 +20,7 @@ let stoppingCommands = {
     player: false,
 };
 let camTypes = ['board', 'player'];
-app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/start', async (req, res) => {
     const { whip_server_url, room, board_cam_display, player_cam_display } = req.body;
     console.log(`Starting streaming to ${whip_server_url}`, room);
     if (streamingRoom) {
@@ -41,7 +32,7 @@ app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     displays['player'] = player_cam_display;
     try {
         for (let camType of camTypes) {
-            yield createEndpoint(camType);
+            await createEndpoint(camType);
         }
     }
     catch (err) {
@@ -51,18 +42,18 @@ app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     startClient('board', 'video0', 1);
     startClient('player', 'video1', 2);
     res.status(200).json();
-}));
-app.get('/stop', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+app.get('/stop', async (req, res) => {
     if (!whipServerUrl || !streamingRoom) {
         res.status(500).json();
         return;
     }
     for (let camType of camTypes) {
-        yield stopClient(camType);
+        await stopClient(camType);
     }
     streamingRoom = null;
     res.status(200).json();
-}));
+});
 app.get('/status', (req, res) => {
     res.json({ room: streamingRoom });
 });
@@ -89,14 +80,12 @@ const PORT = 8070;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-function createEndpoint(type) {
-    return __awaiter(this, void 0, void 0, function* () {
-        console.log(`Creating ${type} endpoint for ${streamingRoom} with ${displays[type]}`);
-        yield axios.post(`${whipServerUrl}/create`, {
-            id: `${streamingRoom}${type}`,
-            room: streamingRoom,
-            label: displays[type],
-        });
+async function createEndpoint(type) {
+    console.log(`Creating ${type} endpoint for ${streamingRoom} with ${displays[type]}`);
+    await axios.post(`${whipServerUrl}/create`, {
+        id: `${streamingRoom}${type}`,
+        room: streamingRoom,
+        label: displays[type],
     });
 }
 function startClient(type, device, ssrc) {
@@ -127,33 +116,31 @@ function startClient(type, device, ssrc) {
         if (!stoppingCommands[type]) {
             console.error(`Process for ${type} cam closed unexpectedly`);
             commands[type] = null;
-            setTimeout(() => __awaiter(this, void 0, void 0, function* () {
+            setTimeout(async () => {
                 try {
-                    yield createEndpoint(type);
+                    await createEndpoint(type);
                 }
                 catch (err) {
                     console.error(err);
                 }
                 startClient(type, device, ssrc);
-            }), 3000);
+            }, 3000);
         }
         stoppingCommands[type] = false;
         console.log(`Process for ${type} cam exited with code ${code}`);
     });
 }
-function stopClient(type) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (commands[type]) {
-            stoppingCommands[type] = true;
-            console.log(`Stopping ${type} cam process`);
-            commands[type].kill();
-            commands[type] = null;
-        }
-        else {
-            console.error(`No ${type} cam process`);
-        }
-        yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${type}`);
-    });
+async function stopClient(type) {
+    if (commands[type]) {
+        stoppingCommands[type] = true;
+        console.log(`Stopping ${type} cam process`);
+        commands[type].kill();
+        commands[type] = null;
+    }
+    else {
+        console.error(`No ${type} cam process`);
+    }
+    await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${type}`);
 }
 function getWirelessInterfaces(callback) {
     exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
