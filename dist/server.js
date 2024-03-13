@@ -44,7 +44,9 @@ app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             yield createEndpoint(camType);
         }
     }
-    catch (_) { }
+    catch (err) {
+        console.error(err);
+    }
     streamingRoom = room;
     startClient('board', 'video0', 1);
     startClient('player', 'video1', 2);
@@ -89,6 +91,7 @@ app.listen(PORT, () => {
 });
 function createEndpoint(type) {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log(`Creating ${type} endpoint for ${streamingRoom} with ${displays[type]}`);
         yield axios.post(`${whipServerUrl}/create`, {
             id: `${streamingRoom}${type}`,
             room: streamingRoom,
@@ -128,7 +131,9 @@ function startClient(type, device, ssrc) {
                 try {
                     yield createEndpoint(type);
                 }
-                catch (_) { }
+                catch (err) {
+                    console.error(err);
+                }
                 startClient(type, device, ssrc);
             }), 3000);
         }

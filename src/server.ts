@@ -61,7 +61,9 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
     for (let camType of camTypes) {
       await createEndpoint(camType);
     }
-  } catch (_) {}
+  } catch (err) {
+    console.error(err);
+  }
 
   streamingRoom = room;
 
@@ -114,6 +116,7 @@ app.listen(PORT, () => {
 });
 
 async function createEndpoint(type: CamType) {
+  console.log(`Creating ${type} endpoint for ${streamingRoom} with ${displays[type]}`);
   await axios.post(`${whipServerUrl}/create`, {
     id: `${streamingRoom}${type}`,
     room: streamingRoom,
@@ -158,7 +161,9 @@ function startClient(type: CamType, device: VideoDevice, ssrc: number) {
       setTimeout(async () => {
         try {
           await createEndpoint(type);
-        } catch (_) {}
+        } catch (err) {
+          console.error(err);
+        }
         startClient(type, device, ssrc);
       }, 3000);
     }
