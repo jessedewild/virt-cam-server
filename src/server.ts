@@ -76,17 +76,7 @@ app.get('/stop', async (req: Request, res: Response) => {
   }
 
   for (let camType of camTypes) {
-    if (commands[camType]) {
-      stoppingCommands[camType] = true;
-
-      console.log(`Stopping ${camType} cam process`);
-      commands[camType].kill();
-      commands[camType] = null;
-    } else {
-      console.error(`No ${camType} cam process`);
-    }
-
-    await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${camType}`);
+    await stopClient(camType);
   }
 
   streamingRoom = null;
@@ -164,6 +154,20 @@ function startClient(type: CamType, device: VideoDevice, ssrc: number) {
   });
 }
 
+async function stopClient(type: CamType) {
+  if (commands[type]) {
+    stoppingCommands[type] = true;
+
+    console.log(`Stopping ${type} cam process`);
+    commands[type].kill();
+    commands[type] = null;
+  } else {
+    console.error(`No ${type} cam process`);
+  }
+
+  await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${type}`);
+}
+
 interface Network {
   ssid: string | null;
   quality: string | null;
@@ -223,3 +227,12 @@ function scanWifiNetworks(interfaceName: string, callback: (error: Error | null,
     callback(null, uniqueNetworks);
   });
 }
+
+async function gracefulShutdown() {
+  for (let camType of camTypes) {
+    await stopClient(camType);
+  }
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
