@@ -21,6 +21,10 @@ type VideoDevice = 'video0' | 'video1';
 let whipServerUrl: string | null = null;
 let streamingRoom: string | null = null;
 
+let displays: { board: string; player: string } = {
+  board: null,
+  player: null,
+};
 let commands: { board: ChildProcessWithoutNullStreams | null; player: ChildProcessWithoutNullStreams | null } = {
   board: null,
   player: null,
@@ -50,19 +54,13 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
   }
 
   whipServerUrl = whip_server_url;
+  displays['board'] = board_cam_display;
+  displays['player'] = player_cam_display;
 
   try {
-    await axios.post(`${whipServerUrl}/create`, {
-      id: `${room}board`,
-      room: room,
-      label: board_cam_display,
-    });
-
-    await axios.post(`${whipServerUrl}/create`, {
-      id: `${room}player`,
-      room: room,
-      label: player_cam_display,
-    });
+    for (let camType of camTypes) {
+      await createEndpoint(camType);
+    }
 
     streamingRoom = room;
 
@@ -118,6 +116,14 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+async function createEndpoint(type: CamType) {
+  await axios.post(`${whipServerUrl}/create`, {
+    id: `${streamingRoom}${type}`,
+    room: streamingRoom,
+    label: displays[type],
+  });
+}
+
 function startClient(type: CamType, device: VideoDevice, ssrc: number) {
   if (!whipServerUrl || !streamingRoom) {
     return;
@@ -152,7 +158,10 @@ function startClient(type: CamType, device: VideoDevice, ssrc: number) {
     if (!stoppingCommands[type]) {
       console.error(`Process for ${type} cam closed unexpectedly`);
       commands[type] = null;
-      setTimeout(() => {
+      setTimeout(async () => {
+        try {
+          await createEndpoint(type);
+        } catch (_) {}
         startClient(type, device, ssrc);
       }, 3000);
     }

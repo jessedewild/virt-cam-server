@@ -16,6 +16,10 @@ app.use(express.json());
 app.use(cors());
 let whipServerUrl = null;
 let streamingRoom = null;
+let displays = {
+    board: null,
+    player: null,
+};
 let commands = {
     board: null,
     player: null,
@@ -33,17 +37,12 @@ app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         return;
     }
     whipServerUrl = whip_server_url;
+    displays['board'] = board_cam_display;
+    displays['player'] = player_cam_display;
     try {
-        yield axios.post(`${whipServerUrl}/create`, {
-            id: `${room}board`,
-            room: room,
-            label: board_cam_display,
-        });
-        yield axios.post(`${whipServerUrl}/create`, {
-            id: `${room}player`,
-            room: room,
-            label: player_cam_display,
-        });
+        for (let camType of camTypes) {
+            yield createEndpoint(camType);
+        }
         streamingRoom = room;
         startClient('board', 'video0', 1);
         startClient('player', 'video1', 2);
@@ -91,6 +90,15 @@ const PORT = 8070;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+function createEndpoint(type) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield axios.post(`${whipServerUrl}/create`, {
+            id: `${streamingRoom}${type}`,
+            room: streamingRoom,
+            label: displays[type],
+        });
+    });
+}
 function startClient(type, device, ssrc) {
     if (!whipServerUrl || !streamingRoom) {
         return;
@@ -119,9 +127,13 @@ function startClient(type, device, ssrc) {
         if (!stoppingCommands[type]) {
             console.error(`Process for ${type} cam closed unexpectedly`);
             commands[type] = null;
-            setTimeout(() => {
+            setTimeout(() => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    yield createEndpoint(type);
+                }
+                catch (_) { }
                 startClient(type, device, ssrc);
-            }, 3000);
+            }), 3000);
         }
         stoppingCommands[type] = false;
         console.log(`Process for ${type} cam exited with code ${code}`);
