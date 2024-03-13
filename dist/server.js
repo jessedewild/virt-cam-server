@@ -60,16 +60,7 @@ app.get('/stop', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return;
     }
     for (let camType of camTypes) {
-        if (commands[camType]) {
-            stoppingCommands[camType] = true;
-            console.log(`Stopping ${camType} cam process`);
-            commands[camType].kill();
-            commands[camType] = null;
-        }
-        else {
-            console.error(`No ${camType} cam process`);
-        }
-        yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${camType}`);
+        yield stopClient(camType);
     }
     streamingRoom = null;
     res.status(200).json();
@@ -136,6 +127,20 @@ function startClient(type, device, ssrc) {
         console.log(`Process for ${type} cam exited with code ${code}`);
     });
 }
+function stopClient(type) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (commands[type]) {
+            stoppingCommands[type] = true;
+            console.log(`Stopping ${type} cam process`);
+            commands[type].kill();
+            commands[type] = null;
+        }
+        else {
+            console.error(`No ${type} cam process`);
+        }
+        yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${type}`);
+    });
+}
 function getWirelessInterfaces(callback) {
     exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
         if (error) {
@@ -184,3 +189,12 @@ function scanWifiNetworks(interfaceName, callback) {
         callback(null, uniqueNetworks);
     });
 }
+function gracefulShutdown() {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (let camType of camTypes) {
+            yield stopClient(camType);
+        }
+    });
+}
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
