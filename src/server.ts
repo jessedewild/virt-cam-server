@@ -7,6 +7,10 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+type CamType = 'board' | 'player';
+
+type VideoDevice = 'video0' | 'video1';
+
 let whipServerUrl: string | null = null;
 let streamingRoom: string | null = null;
 
@@ -18,6 +22,8 @@ let stoppingCommands: { board: boolean; player: boolean } = {
   board: false,
   player: false,
 };
+
+let camTypes: CamType[] = ['board', 'player'];
 
 interface StartRequestBody {
   whip_server_url: string;
@@ -69,29 +75,19 @@ app.get('/stop', async (req: Request, res: Response) => {
     return;
   }
 
-  if (commands['board']) {
-    stoppingCommands['board'] = true;
+  for (let camType of camTypes) {
+    if (commands[camType]) {
+      stoppingCommands[camType] = true;
 
-    console.log(`Stopping board cam process`);
-    commands['board'].kill();
-    commands['board'] = null;
-  } else {
-    console.error(`No board cam process`);
+      console.log(`Stopping ${camType} cam process`);
+      commands[camType].kill();
+      commands[camType] = null;
+    } else {
+      console.error(`No ${camType} cam process`);
+    }
+
+    await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${camType}`);
   }
-
-  await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}board`);
-
-  if (commands['player']) {
-    stoppingCommands['player'] = true;
-
-    console.log(`Stopping player cam process`);
-    commands['player'].kill();
-    commands['player'] = null;
-  } else {
-    console.error(`No player cam process`);
-  }
-
-  await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}player`);
 
   streamingRoom = null;
 
@@ -125,13 +121,13 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-function startClient(type: 'board' | 'player', device: 'video0' | 'video1', ssrc: number) {
+function startClient(type: CamType, device: VideoDevice, ssrc: number) {
   if (!whipServerUrl || !streamingRoom) {
     return;
   }
 
   if (commands[type]) {
-    console.log(`Stopping existing board cam process`);
+    console.log(`Stopping existing ${type} cam process`);
     stoppingCommands[type] = true;
     commands[type].kill();
   }
@@ -150,21 +146,21 @@ function startClient(type: 'board' | 'player', device: 'video0' | 'video1', ssrc
     }
   );
   commands[type].stdout.on('data', (data) => {
-    console.log(`[BOARD]: ${data}`);
+    console.log(`[${type}]: ${data}`);
   });
   commands[type].stderr.on('data', (data) => {
-    console.error(`[BOARD]: ${data}`);
+    console.error(`[${type}]: ${data}`);
   });
   commands[type].on('close', (code) => {
     if (!stoppingCommands[type]) {
-      console.error(`Board cam closed unexpectedly`);
+      console.error(`Process for ${type} cam closed unexpectedly`);
       commands[type] = null;
       setTimeout(() => {
         startClient(type, device, ssrc);
       }, 3000);
     }
     stoppingCommands[type] = false;
-    console.log(`Board cam process exited with code ${code}`);
+    console.log(`Process for ${type} cam exited with code ${code}`);
   });
 }
 

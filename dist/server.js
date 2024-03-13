@@ -24,6 +24,7 @@ let stoppingCommands = {
     board: false,
     player: false,
 };
+let camTypes = ['board', 'player'];
 app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { whip_server_url, room, board_cam_display, player_cam_display } = req.body;
     console.log(`Starting streaming to ${whip_server_url}`, room);
@@ -58,26 +59,18 @@ app.get('/stop', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(500).json();
         return;
     }
-    if (commands['board']) {
-        stoppingCommands['board'] = true;
-        console.log(`Stopping board cam process`);
-        commands['board'].kill();
-        commands['board'] = null;
+    for (let camType of camTypes) {
+        if (commands[camType]) {
+            stoppingCommands[camType] = true;
+            console.log(`Stopping ${camType} cam process`);
+            commands[camType].kill();
+            commands[camType] = null;
+        }
+        else {
+            console.error(`No ${camType} cam process`);
+        }
+        yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${camType}`);
     }
-    else {
-        console.error(`No board cam process`);
-    }
-    yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}board`);
-    if (commands['player']) {
-        stoppingCommands['player'] = true;
-        console.log(`Stopping player cam process`);
-        commands['player'].kill();
-        commands['player'] = null;
-    }
-    else {
-        console.error(`No player cam process`);
-    }
-    yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}player`);
     streamingRoom = null;
     res.status(200).json();
 }));
@@ -112,7 +105,7 @@ function startClient(type, device, ssrc) {
         return;
     }
     if (commands[type]) {
-        console.log(`Stopping existing board cam process`);
+        console.log(`Stopping existing ${type} cam process`);
         stoppingCommands[type] = true;
         commands[type].kill();
     }
@@ -126,21 +119,21 @@ function startClient(type, device, ssrc) {
         detached: true,
     });
     commands[type].stdout.on('data', (data) => {
-        console.log(`[BOARD]: ${data}`);
+        console.log(`[${type}]: ${data}`);
     });
     commands[type].stderr.on('data', (data) => {
-        console.error(`[BOARD]: ${data}`);
+        console.error(`[${type}]: ${data}`);
     });
     commands[type].on('close', (code) => {
         if (!stoppingCommands[type]) {
-            console.error(`Board cam closed unexpectedly`);
+            console.error(`Process for ${type} cam closed unexpectedly`);
             commands[type] = null;
             setTimeout(() => {
                 startClient(type, device, ssrc);
             }, 3000);
         }
         stoppingCommands[type] = false;
-        console.log(`Board cam process exited with code ${code}`);
+        console.log(`Process for ${type} cam exited with code ${code}`);
     });
 }
 function getWirelessInterfaces(callback) {
