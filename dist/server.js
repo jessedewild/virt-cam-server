@@ -43,15 +43,12 @@ app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         for (let camType of camTypes) {
             yield createEndpoint(camType);
         }
-        streamingRoom = room;
-        startClient('board', 'video0', 1);
-        startClient('player', 'video1', 2);
-        res.status(200).json();
     }
-    catch (error) {
-        console.error('Error making POST requests or running commands:', error);
-        res.status(500).json({ message: 'An error occurred' });
-    }
+    catch (_) { }
+    streamingRoom = room;
+    startClient('board', 'video0', 1);
+    startClient('player', 'video1', 2);
+    res.status(200).json();
 }));
 app.get('/stop', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!whipServerUrl || !streamingRoom) {

@@ -61,17 +61,14 @@ app.post('/start', async (req: Request<{}, {}, StartRequestBody>, res: Response)
     for (let camType of camTypes) {
       await createEndpoint(camType);
     }
+  } catch (_) {}
 
-    streamingRoom = room;
+  streamingRoom = room;
 
-    startClient('board', 'video0', 1);
-    startClient('player', 'video1', 2);
+  startClient('board', 'video0', 1);
+  startClient('player', 'video1', 2);
 
-    res.status(200).json();
-  } catch (error) {
-    console.error('Error making POST requests or running commands:', error);
-    res.status(500).json({ message: 'An error occurred' });
-  }
+  res.status(200).json();
 });
 
 app.get('/stop', async (req: Request, res: Response) => {
