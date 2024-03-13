@@ -1,15 +1,19 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const axios_1 = __importDefault(require("axios"));
-const child_process_1 = require("child_process");
-const cors_1 = __importDefault(require("cors"));
-const app = (0, express_1.default)();
-app.use(express_1.default.json());
-app.use((0, cors_1.default)());
+import express from 'express';
+import axios from 'axios';
+import { exec, spawn } from 'child_process';
+import cors from 'cors';
+const app = express();
+app.use(express.json());
+app.use(cors());
 let whipServerUrl = null;
 let streamingRoom = null;
 let commands = {
@@ -20,7 +24,7 @@ let stoppingCommands = {
     board: false,
     player: false,
 };
-app.post('/start', async (req, res) => {
+app.post('/start', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { whip_server_url, room, board_cam_display, player_cam_display } = req.body;
     console.log(`Starting streaming to ${whip_server_url}`, room);
     if (streamingRoom) {
@@ -29,12 +33,12 @@ app.post('/start', async (req, res) => {
     }
     whipServerUrl = whip_server_url;
     try {
-        await axios_1.default.post(`${whipServerUrl}/create`, {
+        yield axios.post(`${whipServerUrl}/create`, {
             id: `${room}board`,
             room: room,
             label: board_cam_display,
         });
-        await axios_1.default.post(`${whipServerUrl}/create`, {
+        yield axios.post(`${whipServerUrl}/create`, {
             id: `${room}player`,
             room: room,
             label: player_cam_display,
@@ -48,8 +52,8 @@ app.post('/start', async (req, res) => {
         console.error('Error making POST requests or running commands:', error);
         res.status(500).json({ message: 'An error occurred' });
     }
-});
-app.get('/stop', async (req, res) => {
+}));
+app.get('/stop', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!whipServerUrl || !streamingRoom) {
         res.status(500).json();
         return;
@@ -63,7 +67,7 @@ app.get('/stop', async (req, res) => {
     else {
         console.error(`No board cam process`);
     }
-    await axios_1.default.delete(`${whipServerUrl}/endpoint/${streamingRoom}board`);
+    yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}board`);
     if (commands['player']) {
         stoppingCommands['player'] = true;
         console.log(`Stopping player cam process`);
@@ -73,10 +77,10 @@ app.get('/stop', async (req, res) => {
     else {
         console.error(`No player cam process`);
     }
-    await axios_1.default.delete(`${whipServerUrl}/endpoint/${streamingRoom}player`);
+    yield axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}player`);
     streamingRoom = null;
     res.status(200).json();
-});
+}));
 app.get('/status', (req, res) => {
     res.json({ room: streamingRoom });
 });
@@ -112,7 +116,7 @@ function startClient(type, device, ssrc) {
         stoppingCommands[type] = true;
         commands[type].kill();
     }
-    commands[type] = (0, child_process_1.spawn)('./simple-whip-client/whip-client', [
+    commands[type] = spawn('./simple-whip-client/whip-client', [
         '-u',
         `${whipServerUrl}/endpoint/${streamingRoom}${type}`,
         '-V',
@@ -140,7 +144,7 @@ function startClient(type, device, ssrc) {
     });
 }
 function getWirelessInterfaces(callback) {
-    (0, child_process_1.exec)("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
+    exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
         if (error) {
             console.error(`exec error: ${error}`);
             callback(error);
@@ -151,7 +155,7 @@ function getWirelessInterfaces(callback) {
     });
 }
 function scanWifiNetworks(interfaceName, callback) {
-    (0, child_process_1.exec)(`sudo iwlist ${interfaceName} scanning`, (error, stdout, stderr) => {
+    exec(`sudo iwlist ${interfaceName} scanning`, (error, stdout, stderr) => {
         if (error) {
             console.error(`exec error: ${error}`);
             callback(error);
