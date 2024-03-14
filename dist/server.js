@@ -5,7 +5,7 @@ import cors from 'cors';
 const app = express();
 app.use(express.json());
 app.use(cors());
-let whipServerUrl = null;
+let janusEndpoint = null;
 let streamingRoom = null;
 let displays = {
     board: null,
@@ -21,28 +21,22 @@ let stoppingCommands = {
 };
 let camTypes = ['board', 'player'];
 app.post('/start', async (req, res) => {
-    const { whip_server_url, room, board_cam_display, player_cam_display } = req.body;
-    console.log(`Starting streaming to ${whip_server_url}`, room);
+    const { janus_endpoint, room, board_cam_display, player_cam_display } = req.body;
+    console.log(`Starting streaming to ${janus_endpoint}`, room);
     if (streamingRoom) {
         res.status(401).json({ message: 'Already streaming', room: streamingRoom });
         return;
     }
-    whipServerUrl = whip_server_url;
+    janusEndpoint = janus_endpoint;
     streamingRoom = room;
     displays['board'] = board_cam_display;
     displays['player'] = player_cam_display;
-    try {
-        for (let camType of camTypes) {
-            await createEndpoint(camType);
-        }
-    }
-    catch (_) { }
     startClient('board', 'video0', 1);
     startClient('player', 'video1', 2);
     res.status(200).json();
 });
 app.get('/stop', async (req, res) => {
-    if (!whipServerUrl || !streamingRoom) {
+    if (!janusEndpoint || !streamingRoom) {
         res.status(500).json();
         return;
     }
@@ -78,15 +72,8 @@ const PORT = 8070;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-async function createEndpoint(type) {
-    await axios.post(`${whipServerUrl}/create`, {
-        id: `${streamingRoom}${type}`,
-        room: streamingRoom,
-        label: displays[type],
-    });
-}
 function startClient(type, device, ssrc) {
-    if (!whipServerUrl || !streamingRoom) {
+    if (!janusEndpoint || !streamingRoom) {
         return;
     }
     if (commands[type]) {
@@ -94,12 +81,7 @@ function startClient(type, device, ssrc) {
         stoppingCommands[type] = true;
         commands[type].kill();
     }
-    commands[type] = spawn('./simple-whip-client/whip-client', [
-        '-u',
-        `${whipServerUrl}/endpoint/${streamingRoom}${type}`,
-        '-V',
-        `"v4l2src device=/dev/${device} ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=${ssrc} ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96"`,
-    ], {
+    commands[type] = spawn(`gst-launch-1.0 v4l2src device=/dev/${device} ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=${ssrc} ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! janusvrwebrtcsink signaller::janus-endpoint=${janusEndpoint} signaller::room-id=${streamingRoom} signaller::display-name=${displays[type]}`, {
         shell: true,
         detached: true,
     });
@@ -114,10 +96,6 @@ function startClient(type, device, ssrc) {
             console.error(`Process for ${type} cam closed unexpectedly`);
             commands[type] = null;
             setTimeout(async () => {
-                try {
-                    await createEndpoint(type);
-                }
-                catch (_) { }
                 startClient(type, device, ssrc);
             }, 3000);
         }
@@ -135,7 +113,7 @@ async function stopClient(type) {
     else {
         console.error(`No ${type} cam process`);
     }
-    await axios.delete(`${whipServerUrl}/endpoint/${streamingRoom}${type}`);
+    await axios.delete(`${janusEndpoint}/endpoint/${streamingRoom}${type}`);
 }
 function getWirelessInterfaces(callback) {
     exec("iw dev | awk '/Interface/ {print $2}'", (error, stdout, stderr) => {
