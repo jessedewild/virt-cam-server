@@ -81,7 +81,7 @@ function startClient(type, device, ssrc) {
         stoppingCommands[type] = true;
         commands[type].kill();
     }
-    const command = `gst-launch-1.0 v4l2src device=/dev/${device} ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=${ssrc} ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! janusvrwebrtcsink signaller::janus-endpoint=${janusEndpoint} signaller::room-id=${streamingRoom} signaller::display-name=${displays[type]}`;
+    const command = `gst-launch-1.0 v4l2src device=/dev/${device} ! video/x-raw,width=960,height=720,framerate=30/1 ! videoconvert ! queue ! x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast ! rtph264pay config-interval=5 pt=96 ssrc=${ssrc} ! queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! janusvrwebrtcsink signaller::janus-endpoint=${janusEndpoint} signaller::room-id=${streamingRoom} signaller::display-name="${displays[type]}"`;
     console.log(command);
     return;
     commands[type] = spawn(command, {
