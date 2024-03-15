@@ -1,6 +1,12 @@
 # Use Debian 12 image as the base
 FROM debian:12
 
+# # For x86_64 architecture
+# FROM --platform=linux/amd64 debian:12
+
+# # For ARM architecture
+# FROM --platform=linux/arm64 debian:12
+
 # Avoid prompts from apt
 ENV DEBIAN_FRONTEND=noninteractive
 

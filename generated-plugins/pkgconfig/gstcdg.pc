@@ -1,6 +1,7 @@
 prefix=/usr
 exec_prefix=${prefix}
-libdir=/generated-plugins
+libdir=${prefix}/lib/aarch64-linux-gnu
+sharedlibdir=${libdir}
 includedir=${prefix}/include
 
 Name: gstcdg
