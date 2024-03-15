@@ -1,11 +1,11 @@
 # Use Debian 12 image as the base
-FROM debian:12
+# FROM debian:12
 
 # # For x86_64 architecture
 # FROM --platform=linux/amd64 debian:12
 
 # # For ARM architecture
-# FROM --platform=linux/arm64 debian:12
+FROM --platform=linux/arm64 debian:12
 
 # Avoid prompts from apt
 ENV DEBIAN_FRONTEND=noninteractive
@@ -45,6 +45,9 @@ RUN apt-get update && apt-get install -y \
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.76.0 -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Create a directory to hold the copied plugins
+RUN mkdir /generated-plugins
+
 # Clone the required repository
 RUN git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs.git /gst-plugins-rs
 
@@ -54,11 +57,12 @@ WORKDIR /gst-plugins-rs
 # Install cargo-c
 RUN cargo install cargo-c
 
-# Create a directory to hold the copied plugins
-RUN mkdir /generated-plugins
-
 # Build gst-plugin-cdg
-RUN cargo cbuild -p gst-plugin-cdg --prefix=/usr --libdir=/generated-plugins
+RUN cargo cbuild -p gst-plugin-cdg --prefix=/usr --libdir=/usr/lib/aarch64-linux-gnu
 
 # Install gst-plugin-cdg
-RUN cargo cinstall -p gst-plugin-cdg --prefix=/usr --libdir=/generated-plugins
+RUN cargo cinstall -p gst-plugin-cdg --prefix=/usr --libdir=/usr/lib/aarch64-linux-gnu
+
+# Copy the plugin files into the /generated-plugins directory
+RUN cp /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstcdg.so /generated-plugins/
+RUN cp /usr/lib/aarch64-linux-gnu/pkgconfig/gstcdg.pc /generated-plugins/
